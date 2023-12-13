@@ -2,3 +2,4 @@ Flask==1.1.4
 Werkzeug==0.16.1
 MarkupSafe==1.1.1  # Use a version that supports soft_unicode
 requests==2.31.0
+python-consul==1.1.0

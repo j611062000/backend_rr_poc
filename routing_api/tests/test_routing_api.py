@@ -2,21 +2,30 @@ import unittest
 
 from routing_api.util import *
 
+from typing import Mapping
 
-def sim_api_call(times: int, inject_resp_time: int):
-    actual_rest_numbers, actual_resp_time = [], []
+
+def sim_api_call(times: int, inject_resp_time_by_i: Mapping[int, int], default_resp_time: int = 0, prt_result=True):
+    actual_rest_numbers, actual_resp_time, chosen_instances = [], [], []
+
     for i in range(times):
-        if i == 0:
-            resp_time = inject_resp_time
+        if i in inject_resp_time_by_i:
+            resp_time = inject_resp_time_by_i[i]
         else:
-            resp_time = 0
+            resp_time = default_resp_time
 
-        RoundRobin.update_response_time(RoundRobin.get_instance_index(), resp_time)
-        RoundRobin.print_rr()
+        chosen_instance = RoundRobin.get_instance_index()
+        print("chosen_instance :", chosen_instance)
+        RoundRobin.update_response_time(chosen_instance, resp_time)
         actual_rest_numbers.append([n for n in RoundRobin.resting_number])
         actual_resp_time.append([n for n in RoundRobin.resp_time_stat])
+        chosen_instances.append(chosen_instance)
 
-    return actual_rest_numbers, actual_resp_time
+    if prt_result:
+        print("actual_rest_numbers:", actual_rest_numbers, "\n")
+        print("actual_resp_time:", actual_resp_time, "\n")
+        print("chosen_instances:", chosen_instances, "\n")
+    return actual_rest_numbers, actual_resp_time, chosen_instances
 
 
 class TestRR(unittest.TestCase):
@@ -25,33 +34,75 @@ class TestRR(unittest.TestCase):
     def setUp(self):
         RoundRobin.init(3)
 
-    def test_positive_no_delay_and_timeout(self):
-        expected_rest_numbers = [0 for _ in range(len(Env.app_instances))]
-        for i in range(10):
-            RoundRobin.update_response_time(RoundRobin.get_instance_index(), Env.slow_down_threshold_ms - 1)
-            assert RoundRobin.resting_number == expected_rest_numbers
+    def test_positive_no_delay_and_no_timeout(self):
+        expected_rest_numbers = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
+        expected_resp_time = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
+        expected_chosen_instances = [0, 1, 2, 0, 1]
+        actual_rest_numbers, actual_resp_time, actual_chosen_instances = sim_api_call(5, {}, prt_result=True)
+
+        assert actual_rest_numbers == expected_rest_numbers
+        assert actual_resp_time == expected_resp_time
+        assert expected_chosen_instances == actual_chosen_instances
 
     def test_negative_one_delay(self):
-        expected_rest_numbers = [[1, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
+        expected_rest_numbers = [[3, 0, 0], [2, 0, 0], [1, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
         expected_resp_time = [[Env.slow_down_threshold_ms + 1, 0, 0], [Env.slow_down_threshold_ms + 1, 0, 0],
-                              [Env.slow_down_threshold_ms + 1, 0, 0], [0, 0, 0], [0, 0, 0]]
+                              [Env.slow_down_threshold_ms + 1, 0, 0], [Env.slow_down_threshold_ms + 1, 0, 0],
+                              [Env.slow_down_threshold_ms + 1, 0, 0], [0, 0, 0]]
+        expected_chosen_instances = [0, 1, 2, 1, 2, 0]
+        actual_rest_numbers, actual_resp_time, actual_chosen_instances = sim_api_call(6, {
+            0: Env.slow_down_threshold_ms + 1})
 
-        actual_rest_numbers, actual_resp_time = sim_api_call(5, Env.slow_down_threshold_ms + 1)
-
-        assert (expected_rest_numbers == actual_rest_numbers)
-        assert (expected_resp_time == actual_resp_time)
+        assert expected_rest_numbers == actual_rest_numbers
+        assert expected_resp_time == actual_resp_time
+        assert expected_chosen_instances == actual_chosen_instances
 
     def test_negative_one_timeout(self):
-        expected_rest_numbers = [[5, 0, 0], [4, 0, 0], [3, 0, 0], [2, 0, 0], [1, 0, 0], [0, 0, 0]]
-        expected_resp_time = [[Env.app_api_timeout_ms + 1, 0, 0], [Env.app_api_timeout_ms + 1, 0, 0],
-                              [Env.app_api_timeout_ms + 1, 0, 0], [Env.app_api_timeout_ms + 1, 0, 0],
-                              [Env.app_api_timeout_ms + 1, 0, 0], [0, 0, 0]]
+        expected_rest_numbers = [[5, 0, 0], [4, 0, 0], [3, 0, 0], [2, 0, 0], [1, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0],
+                                 [0, 0, 0], [0, 0, 0]]
+        expected_resp_time = [[1001, 0, 0], [1001, 0, 0], [1001, 0, 0], [1001, 0, 0], [1001, 0, 0], [1001, 0, 0],
+                              [1001, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
 
-        actual_rest_numbers, actual_resp_time = sim_api_call(6, Env.app_api_timeout_ms + 1)
+        expected_chosen_instances = [0, 1, 2, 1, 2, 1, 2, 0, 1, 2]
+        actual_rest_numbers, actual_resp_time, actual_chosen_instances = (
+            sim_api_call(10, {0: Env.app_api_timeout_ms + 1}))
+        assert expected_rest_numbers == actual_rest_numbers
+        assert expected_resp_time == actual_resp_time
+        assert expected_chosen_instances == actual_chosen_instances
 
-        print(expected_rest_numbers, actual_rest_numbers)
-        assert (expected_rest_numbers == actual_rest_numbers)
-        assert (expected_resp_time == actual_resp_time)
+    def test_negative_one_timeout_and_one_delay(self):
+        expected_rest_numbers = [[5, 0, 0], [4, 3, 0], [3, 2, 0], [2, 1, 0], [1, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0],
+                                 [0, 0, 0], [0, 0, 0]]
+        expected_resp_time = [[1001, 0, 0], [1001, 201, 0], [1001, 201, 0], [1001, 201, 0], [1001, 201, 0],
+                              [1001, 0, 0], [1001, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
+        expected_chosen_instances = [0, 1, 2, 2, 2, 1, 2, 0, 1, 2]
+        inject_resp_time = {0: Env.app_api_timeout_ms + 1, 1: Env.slow_down_threshold_ms + 1}
+
+        actual_rest_numbers, actual_resp_time, actual_chosen_instances = (
+            sim_api_call(10, inject_resp_time))
+
+        assert expected_rest_numbers == actual_rest_numbers
+        assert expected_resp_time == actual_resp_time
+        assert expected_chosen_instances == actual_chosen_instances
+
+    def test_all_timeout(self):
+        steps = 10
+        inject_resp_time = {}
+        for i in range(steps):
+            inject_resp_time[i] = Env.app_api_timeout_ms + 1
+        actual_rest_numbers, actual_resp_time, actual_chosen_instances = (
+            sim_api_call(10, inject_resp_time))
+
+        expected_rest_numbers = [[5, 0, 0], [4, 5, 0], [3, 4, 5], [2, 3, 9], [1, 2, 13], [0, 1, 17], [5, 0, 16],
+                                 [4, 5, 15], [3, 4, 19], [2, 3, 23]]
+        expected_resp_time = [[1001, 0, 0], [1001, 1001, 0], [1001, 1001, 1001], [1001, 1001, 1001], [1001, 1001, 1001],
+                              [1001, 1001, 1001], [1001, 1001, 1001], [1001, 1001, 1001], [1001, 1001, 1001],
+                              [1001, 1001, 1001]]
+
+        expected_chosen_instances = [0, 1, 2, -1, -1, -1, 0, 1, -1, -1]
+        assert expected_rest_numbers == actual_rest_numbers
+        assert expected_resp_time == actual_resp_time
+        assert expected_chosen_instances == actual_chosen_instances
 
 
 if __name__ == '__main__':

@@ -1,5 +1,7 @@
 import os
-from typing import List, Optional
+from typing import Optional
+
+import consul
 
 
 def safe_get_env_var_as_int(var_name: str, default_val: int = 0) -> int:
@@ -10,13 +12,31 @@ def safe_get_env_var_as_int(var_name: str, default_val: int = 0) -> int:
 
 
 def get_app_instances(env: str, port_in_docker: int) -> list[str]:
-    app_instances = []
+    value = ""
+
+    try:
+        c = consul.Consul(host='consul')
+        # Specify the key you want to read
+        consul_key = 'app_instances'
+        # Retrieve the value associated with the key from Consul KV store
+        _, consul_kv_data = c.kv.get(consul_key)
+
+        if consul_kv_data is not None:
+            # Convert the value to string (assuming it's stored as bytes)
+            value = str(consul_kv_data['Value'].decode('utf-8')).split(",")
+    except Exception as e:
+        consul_kv_data = None
+
     if env == "docker":
-        app_instances = [
-            f"http://application_api_1:{port_in_docker}",
-            f"http://application_api_2:{port_in_docker}",
-            f"http://application_api_3:{port_in_docker}"
-        ]
+        if consul_kv_data is not None and len(value) > 0:
+            app_instances = value
+
+        else:
+            app_instances = [
+                f"http://application_api_0:{port_in_docker}",
+                f"http://application_api_1:{port_in_docker}",
+                f"http://application_api_2:{port_in_docker}"
+            ]
     else:
         app_instances = [
             f"http://localhost:10001",
@@ -43,7 +63,6 @@ class Env(object):
         Env.app_api_timeout_ms = 1000
         Env.app_api_timeout_seconds = 1
         Env.upstream_port = 5000
-        Env.slow_down_rest = 1
+        Env.slow_down_rest = 3
         Env.timeout_rest = 5
         Env.app_instances = ["app1", "app2", "app3"]
-

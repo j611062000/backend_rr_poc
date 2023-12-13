@@ -1,23 +1,28 @@
 # docker-compose.yml
 version: '1'
 services:
-  performance_stats:
-    image: performance_stats:latest
+  consul:
+    image: hashicorp/consul
+    ports:
+      - "8500:8500"  # Consul UI
 
-  application_api_1:
+    command:
+
+  application_api_0:
     image: application_api:latest
     ports:
       - "10001:5000"  # First instance on port 10000
 
-  application_api_2:
+  application_api_1:
     image: application_api:latest
     ports:
       - "10002:5000"  # Second instance on port 10001
 
-  application_api_3:
+  application_api_2:
     image: application_api:latest
     ports:
       - "10003:5000"  # Third instance on port 10002
+
 
   routing_api:
     image: routing_api:latest
@@ -29,8 +34,3 @@ services:
       - SLOW_DOWN_THRESHOLD_MS = ${SLOW_DOWN_THRESHOLD_MS}
       - APP_API_TIMEOUT_MS = ${APP_API_TIMEOUT_MS}
       - ENV = ${ENV}
-
-  redis:
-    image: redis:latest
-    ports:
-      - "6379:6379"

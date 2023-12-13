@@ -1,9 +1,8 @@
-import os
 from datetime import datetime
 
 from requests import Response
 
-from .env import Env
+from env import Env
 
 
 class RoundRobin(object):
@@ -57,8 +56,8 @@ class RoundRobin(object):
 
     @staticmethod
     def get_instance_index() -> int:
-        visited, chosen_idx = 0, -1
-        RoundRobin.update_all_resting_number(RoundRobin.resting_number, -1)
+        visited: int = 0
+        chosen_idx = -1
 
         while visited < RoundRobin.backend_srv_number:
             if RoundRobin.resting_number[RoundRobin.cur_idx] == 0:
@@ -68,9 +67,12 @@ class RoundRobin(object):
             RoundRobin.circle_inc_cur_idx()
 
         if chosen_idx == -1:
-            chosen_idx = RoundRobin.resp_time_stat.index(min(RoundRobin.resp_time_stat))
-            RoundRobin.update_cur_idx(chosen_idx)
+            a = all(resp_time < Env.app_api_timeout_ms for resp_time in RoundRobin.resp_time_stat)
+            if all(resp_time < Env.app_api_timeout_ms for resp_time in RoundRobin.resp_time_stat):
+                chosen_idx = RoundRobin.resp_time_stat.index(min(RoundRobin.resp_time_stat))
+                RoundRobin.update_cur_idx(chosen_idx)
 
+        RoundRobin.update_all_resting_number(RoundRobin.resting_number, -1)
         RoundRobin.circle_inc_cur_idx()
         return chosen_idx
 
@@ -86,14 +88,15 @@ class RoundRobin(object):
 
 class Api(object):
     @staticmethod
-    def get_success_response(response: Response) -> dict:
+    def get_success_response(response: Response, other: dict) -> dict:
         return {
             "status": "success",
             "data_from_upstream": response.json(),
-            "upstream_index": RoundRobin.cur_idx + 1,
+            "upstream_index": RoundRobin.cur_idx,
             "upstream_service": Env.app_instances[RoundRobin.cur_idx],
             "response_time_ms_statistics": RoundRobin.resp_time_stat,
             "rest_number": RoundRobin.resting_number,
+            "other": other
         }
 
 

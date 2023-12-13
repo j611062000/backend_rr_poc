@@ -1,10 +1,13 @@
 from datetime import datetime
-from typing import Callable
+
 import requests
+
 from flask import Flask, request, jsonify
 from requests import Response
-from util import RoundRobin as rr, Api, get_response_time_ms
+
 from env import Env
+from exception import NoHealthyUpstream
+from util import RoundRobin as rr, Api, get_response_time_ms
 
 app = Flask(__name__)
 app.debug = True  # Enable debug mode
@@ -14,10 +17,10 @@ app_instances: list[str] = Env.app_instances
 rr.init(len(app_instances))
 
 
-def get_resp(response: Response):
+def get_resp(response: Response, other: dict = {}):
     if response.status_code == 200:
         # Update the instance index for the next request (round-robin)
-        response_data = Api.get_success_response(response)
+        response_data = Api.get_success_response(response, other)
         return jsonify(response_data), 200  # Respond with the instance response
     else:
         return jsonify({
@@ -26,16 +29,22 @@ def get_resp(response: Response):
         }), 500  # Respond with an error if upstream call failed
 
 
-@app.route('/', methods=['POST'])
-def round_robin(inject_post=None):
+def get_rr_idx_instances():
     # Get the current instance address based on round-robin index
     current_instance_index = rr.get_instance_index()
+    if current_instance_index == -1:
+        raise NoHealthyUpstream("No healthy upstream")
     current_instance: str = app_instances[current_instance_index]
+    return current_instance, current_instance_index
+
+
+@app.route('/', methods=['POST'])
+def round_robin(inject_post=None):
 
     post = inject_post if inject_post else requests.post
-
     # Send the received JSON payload to the selected instance
     try:
+        current_instance, current_instance_index = get_rr_idx_instances()
         data = request.get_json()  # Get the JSON data from the POST request
         start: datetime = datetime.now()
         response: Response = post(current_instance, json=data, timeout=Env.app_api_timeout_seconds)
@@ -44,16 +53,17 @@ def round_robin(inject_post=None):
 
         return get_resp(response)
 
-    except requests.exceptions.Timeout as timeout_error:
+    except requests.exceptions.Timeout:
         rr.update_response_time(current_instance_index, Env.app_api_timeout_ms)
         return jsonify({
-            "error": f"Request Exception: {timeout_error}",
+            "error": f"timeout when sending request to {current_instance}",
             "current_instance_index": current_instance_index,
             "response_time_ms_statistics": rr.resp_time_stat,
             "app_api_timeout_ms": Env.app_api_timeout_ms
         }), 500  # Respond with an error for any exception
 
     except requests.RequestException as e:
+        rr.update_response_time(current_instance_index, Env.app_api_timeout_ms)
         return jsonify({"error": f"Request Exception: {e}"}), 500  # Respond with an error for any exception
 
 

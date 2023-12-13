@@ -13,10 +13,8 @@ cd ./routing_api &&
 docker build -t routing_api:latest . &&
 cd .. &&
 
-echo "building performance_stats"
+docker-compose up -d &&
 
-cd ./performance_stats &&
-docker build -t performance_stats:latest . &&
+curl --request PUT --data 'http://application_api_0:5000,http://application_api_1:5000,http://application_api_2:5000,http://application_api_3:5000' http://localhost:8500/v1/kv/app_instances
 
-cd ..
-docker-compose up -d
+
