@@ -100,5 +100,5 @@ slowly?
        - test_negative_one_timeout (go down)
        - test_negative_one_timeout_and_one_delay (slow down and go down)
        - test_all_timeout (all go down)
-   - Manually test: By [POSTMAN collection](https://api.postman.com/collections/11875343-0993d0b3-110b-4002-a651-7ea64486a584?access_key=PMAT-01HHJ3C5B8C51ADS6VN63K85EN)
+   - Manually test: By [POSTMAN collection], and please refer to the mail
 
