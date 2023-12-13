@@ -21,20 +21,22 @@ app_api_timeout_ms = safe_get_env_var_as_int('APP_API_TIMEOUT_MS')
 upstream_port = safe_get_env_var_as_int('UPSTREAM_PORT')
 slow_down_rest_number = safe_get_env_var_as_int('SLOW_DOWN_REST_NUMBER')
 timeout_rest_number = safe_get_env_var_as_int('TIMEOUT_REST_NUMBER')
+env = os.getenv("ENV")
 
-# List of Application API instances (add addresses/ports accordingly)
-# app_instances: List[str] = [
-#     f"http://application_api_1:{upstream_port}",
-#     f"http://application_api_2:{upstream_port}",
-#     f"http://application_api_3:{upstream_port}"
-# ]
+app_instances:list[str] = []
 
-# List of Application API instances (add addresses/ports accordingly)
-app_instances: List[str] = [
-    f"http://localhost:10001",
-    f"http://localhost:10002",
-    f"http://localhost:10003"
-]
+if env == "docker":
+    app_instances: List[str] = [
+        f"http://application_api_1:{upstream_port}",
+        f"http://application_api_2:{upstream_port}",
+        f"http://application_api_3:{upstream_port}"
+    ]
+else:
+    app_instances: List[str] = [
+        f"http://localhost:10001",
+        f"http://localhost:10002",
+        f"http://localhost:10003"
+    ]
 
 
 current_instance_index: int = 0  # To track the current instance index
@@ -127,5 +129,6 @@ if __name__ == '__main__':
           f"slow_down_threshold_ms = {slow_down_threshold_ms} \n"
           f"app_api_timeout_ms = {app_api_timeout_ms} \n"
           f"rest_numer = {resting_number} \n"
+          f"env = {env} \n"
           )
     app.run(host='0.0.0.0', port=5000, debug=True)  # Run the Round Robin API on port 20001

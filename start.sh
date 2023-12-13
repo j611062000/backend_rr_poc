@@ -1,3 +1,6 @@
+echo "running tests"
+python3 -m unittest routing_api.tests.test_routing_api
+
 echo "building application_api"
 
 cd ./application_api &&

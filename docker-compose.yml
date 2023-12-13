@@ -28,6 +28,7 @@ services:
     environment:
       - SLOW_DOWN_THRESHOLD_MS = ${SLOW_DOWN_THRESHOLD_MS}
       - APP_API_TIMEOUT_MS = ${APP_API_TIMEOUT_MS}
+      - ENV = ${ENV}
 
   redis:
     image: redis:latest
