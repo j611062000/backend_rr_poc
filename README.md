@@ -72,7 +72,9 @@ Once the script finished, you can see the 5 services are all up
 ```
 ---
 ### Round-Robin
-I use 3 kind of information to implement round-robin. 
+I use 3 kind of information below to implement round-robin.
+All the RR related logic are under `class RoundRobin` inside `routing_api/util.py`. 
+For the core RR logic, please refer to the function `get_instance_index`, and I put more explanation there.
 
 1. resp_time_stat: list[int] = []
    - record the latest response time (ms) for each service. For ex: [1,10,11] means the response time are 1,10,11 ms individually of service 0,1,2
@@ -81,8 +83,6 @@ I use 3 kind of information to implement round-robin.
 3. cur_idx = 0
    - means what is the current upstream service we should use.
 
-All the RR related logic are under `class RoundRobin` inside `routing_api/util.py`. 
-For the core RR logic, please refer to the function `get_instance_index`, and I put more explanation there.
 ---
 ### Questions
 1. How would my round-robin API handle it if one of the application APIs goes down? 
