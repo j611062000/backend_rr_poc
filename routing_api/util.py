@@ -15,6 +15,14 @@ class RoundRobin(object):
     cur_idx = 0
 
     @staticmethod
+    def circle_inc_cur_idx():
+        RoundRobin.cur_idx = (RoundRobin.cur_idx + 1) % RoundRobin.backend_srv_number
+
+    @staticmethod
+    def update_cur_idx(idx: int) -> None:
+        RoundRobin.cur_idx = idx
+
+    @staticmethod
     def print_rr():
         print("----------- \n")
         print(f"slow down ms threshold, {RoundRobin.env.slow_down_threshold_ms}")
@@ -27,8 +35,9 @@ class RoundRobin(object):
         print("----------- \n")
 
     @staticmethod
-    def init(backend_srv_number: int):
+    def init(backend_srv_number: int, cur_idx: int = 0) -> None:
         RoundRobin.backend_srv_number = backend_srv_number
+        RoundRobin.cur_idx = cur_idx
         RoundRobin.resp_time_stat = [0 for _ in range(backend_srv_number)]
         RoundRobin.resting_number = [0 for _ in range(backend_srv_number)]
 
@@ -42,20 +51,28 @@ class RoundRobin(object):
             rest_numbers[idx] = new_numer
 
     @staticmethod
+    def update_all_resting_number(rest_numbers: list[int], cnt: int) -> None:
+        for i in range(len(rest_numbers)):
+            RoundRobin.update_resting_number(rest_numbers, i, cnt)
+
+    @staticmethod
     def get_instance_index() -> int:
-        RoundRobin.cur_idx = (RoundRobin.cur_idx + 1) % RoundRobin.backend_srv_number
-        print("cur_idx", RoundRobin.cur_idx)
-        visited = 0
+        visited, chosen_idx = 0, -1
+        RoundRobin.update_all_resting_number(RoundRobin.resting_number, -1)
 
         while visited < RoundRobin.backend_srv_number:
-            print("get_instance_index", RoundRobin.resting_number[visited], RoundRobin.cur_idx)
-            RoundRobin.update_resting_number(RoundRobin.resting_number, RoundRobin.cur_idx, -1)
             if RoundRobin.resting_number[RoundRobin.cur_idx] == 0:
-                return RoundRobin.cur_idx
+                chosen_idx = RoundRobin.cur_idx
+                break
             visited += 1
-            RoundRobin.cur_idx += 1
+            RoundRobin.circle_inc_cur_idx()
 
-        return RoundRobin.resp_time_stat.index(min(RoundRobin.resp_time_stat))
+        if chosen_idx == -1:
+            chosen_idx = RoundRobin.resp_time_stat.index(min(RoundRobin.resp_time_stat))
+            RoundRobin.update_cur_idx(chosen_idx)
+
+        RoundRobin.circle_inc_cur_idx()
+        return chosen_idx
 
     @staticmethod
     def update_response_time(cur_idx: int, resp_time_ms: int) -> None:

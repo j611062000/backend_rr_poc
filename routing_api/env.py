@@ -1,4 +1,5 @@
 import os
+from typing import List, Optional
 
 
 def safe_get_env_var_as_int(var_name: str, default_val: int = 0) -> int:
@@ -27,14 +28,14 @@ def get_app_instances(env: str, port_in_docker: int) -> list[str]:
 
 
 class Env(object):
-    slow_down_threshold_ms = safe_get_env_var_as_int('SLOW_DOWN_THRESHOLD_MS')
-    app_api_timeout_ms = safe_get_env_var_as_int('APP_API_TIMEOUT_MS')
-    app_api_timeout_seconds = app_api_timeout_ms // 1000
-    upstream_port = safe_get_env_var_as_int('UPSTREAM_PORT')
-    slow_down_rest = safe_get_env_var_as_int('SLOW_DOWN_REST_NUMBER')
-    timeout_rest = safe_get_env_var_as_int('TIMEOUT_REST_NUMBER')
-    env = os.getenv("ENV")
-    app_instances = get_app_instances(env, upstream_port)
+    slow_down_threshold_ms: int = safe_get_env_var_as_int('SLOW_DOWN_THRESHOLD_MS')
+    app_api_timeout_ms: int = safe_get_env_var_as_int('APP_API_TIMEOUT_MS')
+    app_api_timeout_seconds: int = app_api_timeout_ms // 1000
+    upstream_port: int = safe_get_env_var_as_int('UPSTREAM_PORT')
+    slow_down_rest: int = safe_get_env_var_as_int('SLOW_DOWN_REST_NUMBER')
+    timeout_rest: int = safe_get_env_var_as_int('TIMEOUT_REST_NUMBER')
+    env: Optional[str] = os.getenv("ENV")
+    app_instances: list[str] = get_app_instances(env, upstream_port)
 
     @staticmethod
     def update_mock_env():
