@@ -1,14 +1,23 @@
 import unittest
 from unittest.mock import patch
+from routing_api.env import Env
+from routing_api.util import *
 
-# from routing_api.app import round_robin
 
-#
-# class TestStringMethods(unittest.TestCase):
-#     @patch('requests.get')
-#     def test_rr(self):
-#         return True
-#         # round_robin()  # Mock the requests.get function
+class TestRR(unittest.TestCase):
+    Env.update_mock_env()
+    RoundRobin.init(3)
+    def test_rr(self):
+        RoundRobin.update_response_time(1, 1000)
+        RoundRobin.print_rr()
+
+        RoundRobin.update_response_time(1, 10)
+        RoundRobin.print_rr()
+
+        RoundRobin.update_response_time(1, 10)
+        RoundRobin.print_rr()
+        assert RoundRobin.resp_time_stat[1] == 11
+        # round_robin()  # Mock the requests.get function
 
 
 if __name__ == '__main__':
