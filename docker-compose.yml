@@ -10,17 +10,17 @@ services:
   application_api_0:
     image: application_api:latest
     ports:
-      - "10001:5000"  # First instance on port 10000
+      - "10001:5000"
 
   application_api_1:
     image: application_api:latest
     ports:
-      - "10002:5000"  # Second instance on port 10001
+      - "10002:5000"
 
   application_api_2:
     image: application_api:latest
     ports:
-      - "10003:5000"  # Third instance on port 10002
+      - "10003:5000"
 
 
   routing_api:
