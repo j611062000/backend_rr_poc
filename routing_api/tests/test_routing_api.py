@@ -5,7 +5,7 @@ from routing_api.util import *
 from typing import Mapping
 
 
-def sim_api_call(times: int, inject_resp_time_by_i: Mapping[int, int], default_resp_time: int = 0, prt_result=True):
+def sim_api_call(times: int, inject_resp_time_by_i: Mapping[int, int], default_resp_time: int = 0, prt_result=False):
     actual_rest_numbers, actual_resp_time, chosen_instances = [], [], []
 
     for i in range(times):
@@ -15,7 +15,6 @@ def sim_api_call(times: int, inject_resp_time_by_i: Mapping[int, int], default_r
             resp_time = default_resp_time
 
         chosen_instance = RoundRobin.get_instance_index()
-        print("chosen_instance :", chosen_instance)
         RoundRobin.update_response_time(chosen_instance, resp_time)
         actual_rest_numbers.append([n for n in RoundRobin.resting_number])
         actual_resp_time.append([n for n in RoundRobin.resp_time_stat])

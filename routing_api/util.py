@@ -2,7 +2,10 @@ from datetime import datetime
 
 from requests import Response
 
-from env import Env
+try:
+    from env import Env
+except ImportError:
+    from routing_api.env import Env
 
 
 class RoundRobin(object):

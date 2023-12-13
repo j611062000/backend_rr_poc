@@ -6,7 +6,6 @@ services:
     ports:
       - "8500:8500"  # Consul UI
 
-    command:
 
   application_api_0:
     image: application_api:latest
