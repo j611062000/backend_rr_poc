@@ -57,6 +57,30 @@ class RoundRobin(object):
         for i in range(len(rest_numbers)):
             RoundRobin.update_resting_number(rest_numbers, i, cnt)
 
+    '''
+    [Purpose]
+    This method is designed to retrieve an instance index based on certain conditions, 
+    presumably for a round-robin load balancing mechanism.
+    
+    [Initialization]
+    visited: Tracks the number of instances checked.
+    chosen_idx: Represents the chosen instance index. Initialized as -1.
+    
+    [Loop Through Instances]
+    The method iterates through instances (backend_srv_number times) to find an available instance with 
+    resting_number equal to 0. It updates chosen_idx when it finds an available instance.
+    
+    [Fallback Mechanism]
+    If no instance with resting_number 0 is found:
+    It checks if all response times are below a certain threshold (Env.app_api_timeout_ms). 
+    If so, it selects the instance with the minimum response time.
+    Updates cur_idx to the chosen instance.
+    
+    [Update and Return]
+    Updates resting_number for all instances.
+    Increases cur_idx in a circular manner.
+    Returns the chosen instance index.
+    '''
     @staticmethod
     def get_instance_index() -> int:
         visited: int = 0

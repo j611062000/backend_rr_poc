@@ -17,6 +17,6 @@ docker-compose up -d &&
 
 
 sleep 5 &&
-curl --request PUT --data 'http://application_api_0:5000,http://application_api_1:5000,http://application_api_2:5000,http://application_api_3:5000' http://localhost:8500/v1/kv/app_instances
+curl --request PUT --data 'http://application_api_0:5000,http://application_api_1:5000,http://application_api_2:5000' http://localhost:8500/v1/kv/app_instances
 
 

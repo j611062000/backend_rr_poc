@@ -3,11 +3,15 @@ from datetime import datetime
 import requests
 
 from flask import Flask, request, jsonify
-from requests import Response
+from requests import Response, RequestException
 
 from env import Env
-from exception import NoHealthyUpstream
 from util import RoundRobin as rr, Api, get_response_time_ms
+
+
+class NoHealthyUpstream(RequestException, ValueError):
+    pass
+
 
 app = Flask(__name__)
 app.debug = True  # Enable debug mode
@@ -40,7 +44,6 @@ def get_rr_idx_instances():
 
 @app.route('/', methods=['POST'])
 def round_robin(inject_post=None):
-
     post = inject_post if inject_post else requests.post
     # Send the received JSON payload to the selected instance
     try:

@@ -1,8 +1,11 @@
 import unittest
-
-from routing_api.util import *
-
 from typing import Mapping
+from unittest.mock import Mock, patch
+
+import requests
+
+from routing_api.app import round_robin, app
+from routing_api.util import *
 
 
 def sim_api_call(times: int, inject_resp_time_by_i: Mapping[int, int], default_resp_time: int = 0, prt_result=False):
