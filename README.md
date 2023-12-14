@@ -108,8 +108,15 @@ slowly?
    - Manually test: By [POSTMAN collection], and please refer to the mail
      - Positive test case: test_positive_no_delay_and_no_timeout
      - Negative test cases:
-       - test_negative_one_delay (slow down)
-       - test_negative_one_timeout (go down)
-       - test_negative_one_timeout_and_one_delay (slow down and go down)
+       - test_negative_1_delay (slow down)
+       - test_negative_2_delay (slow down)
+       - test_negative_3_delay (slow down)
+       - test_negative_1_timeout (go down)
+       - test_negative_2_timeout (go down)
+       - test_negative_3_timeout (go down)
+       - test_negative_1_timeout_and_1_delay (slow down and go down)
+       - test_negative_2_timeout_and_1_delay (slow down and go down)
+       - test_negative_1_timeout_and_2_delay (slow down and go down)
        - test_all_timeout (all go down)
+       - test_all_delay (all slow down)
 

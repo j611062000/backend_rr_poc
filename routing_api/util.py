@@ -102,7 +102,7 @@ class RoundRobin(object):
             RoundRobin.circle_inc_cur_idx()
 
         if chosen_idx == RoundRobin.invalid_cur_idx:
-            if all(resp_time < Env.app_api_timeout_ms for resp_time in RoundRobin.resp_time_ms_stat):
+            if any(resp_time < Env.app_api_timeout_ms for resp_time in RoundRobin.resp_time_ms_stat):
                 min_resp_time = min(RoundRobin.resp_time_ms_stat)
                 chosen_idx = RoundRobin.resp_time_ms_stat.index(min_resp_time)
                 RoundRobin.update_cur_idx(chosen_idx)
