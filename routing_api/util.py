@@ -131,19 +131,33 @@ class RoundRobin(object):
         return " | " + reason if reason != "" else ""
 
 
+def lst_to_str(l: list[any]) -> str:
+    return ",".join([str(e) for e in l])
+
+
 class Api(object):
     @staticmethod
     def get_response(status: str, response: Response = None, reason: str = "", cur_idx: int = -1) -> dict:
         return {
             "1_status": status,
             "2_data_from_upstream": response.json() if response else "",
-            "3_upstream_index": cur_idx,
-            "4_upstream_service": Env.app_instances[cur_idx] if cur_idx >= 0 else "no service is chosen",
-            "5_response_time_ms_statistics": RoundRobin.resp_time_ms_stat,
-            "6_prev_response_time_ms_statistics": RoundRobin.prev_resp_time_ms_stat,
-            "7_rest_number": RoundRobin.resting_number,
-            "8_prev_rest_number": RoundRobin.prev_resting_number,
-            "9_reason": reason,
+            "3_upstream": {
+                "upstream_index": cur_idx,
+                "upstream_service": Env.app_instances[cur_idx] if cur_idx >= 0 else "no service is chosen",
+            },
+            "4_response_time_ms_statistic": {
+                "current": lst_to_str(RoundRobin.resp_time_ms_stat),
+                "previous": lst_to_str(RoundRobin.prev_resp_time_ms_stat),
+            },
+            "5_resting_number": {
+                "current": lst_to_str(RoundRobin.resting_number),
+                "previous": lst_to_str(RoundRobin.prev_resting_number),
+            },
+            "6_explanation": reason,
+            "7_metadata": {
+                "slow_down_threshold_ms": RoundRobin.env.slow_down_threshold_ms,
+                "timeout_threshold_ms": RoundRobin.env.app_api_timeout_ms
+            }
         }
 
 

@@ -9,7 +9,7 @@ class Status:
     Normal = 0
     Slow = 1
     Down = 2
-
+statuses = ["Normal", "Slow", "Down"]
 
 app = Flask(__name__)
 port = 5000
@@ -29,6 +29,11 @@ def echo_request():
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify("all good!"), 200
+
+
+@app.route('/get_status', methods=['GET'])
+def get_status():
+    return jsonify({"status": current_status, "explanation": statuses[current_status]}), 200
 
 
 @app.route('/update_status', methods=['POST'])

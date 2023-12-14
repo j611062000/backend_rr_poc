@@ -48,26 +48,30 @@ Once the script finished, you can see the 5 services are all up
        - endpoint = "/", payload: any json
        - response
 ```json
-  {
-   "data_from_upstream": {
-       "game": "Mobile Legends",
-       "gamerID": "GYUTDTE",
-       "points": 20
-   },
-   "other": {},
-   "response_time_ms_statistics": [ // please refer to the below section (Round-Robin) for explanation
-       8,
-       13,
-       10
-   ],
-   "rest_number": [ // please refer to the below section (Round-Robin) for explanation
-       0,
-       0,
-       0
-   ],
-   "status": "success",
-   "upstream_index": 1,
-   "upstream_service": "http://application_api_1:5000"
+{
+    "1_status": "success",
+    "2_data_from_upstream": {
+        "game": "Mobile Legends",
+        "gamerID": "sid",
+        "points": 20
+    },
+    "3_upstream": {
+        "upstream_index": 1,
+        "upstream_service": "http://application_api_1:5000"
+    },
+    "4_response_time_ms_statistic": {
+        "current": "2017,1019,2012",
+        "previous": "2017,1016,2012"
+    },
+    "5_resting_number": {
+        "current": "2,3,3",
+        "previous": "3,0,4"
+    },
+    "6_explanation": "service 1 is chosen because its resting number is zero | 1 is slow down now, so we add the resting number 3 for it.",
+    "7_metadata": {
+        "slow_down_threshold_ms": 100,
+        "timeout_threshold_ms": 5000
+    }
 }
 ```
 ---

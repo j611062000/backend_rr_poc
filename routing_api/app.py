@@ -64,7 +64,6 @@ def round_robin(inject_post=None):
         return jsonify(response_data), 500  # Respond with an error for any exception
 
     except requests.RequestException as e:
-        rr.update_response_time(current_instance_index, Env.app_api_timeout_ms)
         reason = f"{e}"
         response_data = Api.get_response("failed", None, reason, current_instance_index)
         return jsonify(response_data), 500  # Respond with an error for any exception
