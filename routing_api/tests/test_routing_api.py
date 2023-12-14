@@ -1,32 +1,31 @@
 import unittest
 from typing import Mapping
-from unittest.mock import Mock, patch
-
-import requests
-
-from routing_api.app import round_robin, app
 from routing_api.util import *
 
 
-def sim_api_call(times: int, inject_resp_time_by_i: Mapping[int, int], default_resp_time: int = 0, prt_result=False):
-    actual_rest_numbers, actual_resp_time, chosen_instances = [], [], []
+def sim_api_call(times: int, inject_resp_time_by_step_i: Mapping[int, int], default_resp_time: int = 0,
+                 prt_result=True):
+    actual_rest_numbers, actual_resp_time, chosen_instances, reasons = [], [], [], []
 
     for i in range(times):
-        if i in inject_resp_time_by_i:
-            resp_time = inject_resp_time_by_i[i]
+        if i in inject_resp_time_by_step_i:
+            resp_time = inject_resp_time_by_step_i[i]
         else:
             resp_time = default_resp_time
 
-        chosen_instance = RoundRobin.get_instance_index()
+        chosen_instance, reason = RoundRobin.get_instance_index()
         RoundRobin.update_response_time(chosen_instance, resp_time)
         actual_rest_numbers.append([n for n in RoundRobin.resting_number])
-        actual_resp_time.append([n for n in RoundRobin.resp_time_stat])
+        actual_resp_time.append([n for n in RoundRobin.resp_time_ms_stat])
         chosen_instances.append(chosen_instance)
+        reasons.append(reason)
 
     if prt_result:
         print("actual_rest_numbers:", actual_rest_numbers, "\n")
         print("actual_resp_time:", actual_resp_time, "\n")
         print("chosen_instances:", chosen_instances, "\n")
+        for idx, r in enumerate(reasons):
+            print(f"{idx + 1}. {r}")
     return actual_rest_numbers, actual_resp_time, chosen_instances
 
 
@@ -54,6 +53,24 @@ class TestRR(unittest.TestCase):
         expected_chosen_instances = [0, 1, 2, 1, 2, 0]
         actual_rest_numbers, actual_resp_time, actual_chosen_instances = sim_api_call(6, {
             0: Env.slow_down_threshold_ms + 1})
+
+        assert expected_rest_numbers == actual_rest_numbers
+        assert expected_resp_time == actual_resp_time
+        assert expected_chosen_instances == actual_chosen_instances
+
+    def test_negative_all_delay(self):
+        expected_rest_numbers = [[3, 0, 0], [2, 3, 0], [1, 2, 3], [3, 1, 2], [5, 0, 1], [4, 3, 0]]
+        expected_resp_time = [[201, 0, 0], [201, 202, 0], [201, 202, 203], [201, 202, 203], [202, 202, 203], [202, 203, 203]]
+        expected_chosen_instances = [0, 1, 2, 0, 0, 1]
+        inject_resp_time = {
+            0: Env.slow_down_threshold_ms + 1,
+            1: Env.slow_down_threshold_ms + 2,
+            2: Env.slow_down_threshold_ms + 3,
+            3: Env.slow_down_threshold_ms + 1,
+            4: Env.slow_down_threshold_ms + 2,
+            5: Env.slow_down_threshold_ms + 3,
+        }
+        actual_rest_numbers, actual_resp_time, actual_chosen_instances = sim_api_call(6, inject_resp_time)
 
         assert expected_rest_numbers == actual_rest_numbers
         assert expected_resp_time == actual_resp_time

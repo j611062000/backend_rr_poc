@@ -11,10 +11,12 @@ except ImportError:
 class RoundRobin(object):
     env = Env
     backend_srv_number: int = 0
-    # in ms
-    resp_time_stat: list[int] = []
+    resp_time_ms_stat: list[int] = []
+    prev_resp_time_ms_stat: list[int] = []
     resting_number: list[int] = []
-    cur_idx = 0
+    prev_resting_number: list[int] = []
+    cur_idx: int = 0
+    invalid_cur_idx: int = -1
 
     @staticmethod
     def circle_inc_cur_idx():
@@ -32,7 +34,7 @@ class RoundRobin(object):
         print(f"timeout ms threshold, {RoundRobin.env.app_api_timeout_ms}")
         print(f"timeout sec threshold, {RoundRobin.env.app_api_timeout_seconds}")
         print(f"timeout rest, {RoundRobin.env.timeout_rest}")
-        print("resp_time_stat: ", RoundRobin.resp_time_stat)
+        print("resp_time_stat: ", RoundRobin.resp_time_ms_stat)
         print("resting_number: ", RoundRobin.resting_number)
         print("----------- \n")
 
@@ -40,13 +42,16 @@ class RoundRobin(object):
     def init(backend_srv_number: int, cur_idx: int = 0) -> None:
         RoundRobin.backend_srv_number = backend_srv_number
         RoundRobin.cur_idx = cur_idx
-        RoundRobin.resp_time_stat = [0 for _ in range(backend_srv_number)]
+        RoundRobin.resp_time_ms_stat = [0 for _ in range(backend_srv_number)]
         RoundRobin.resting_number = [0 for _ in range(backend_srv_number)]
+        RoundRobin.prev_resp_time_ms_stat = [0 for _ in range(backend_srv_number)]
+        RoundRobin.prev_resting_number = [0 for _ in range(backend_srv_number)]
 
     @staticmethod
     def update_resting_number(rest_numbers: list[int], idx: int, cnt: int) -> None:
         cur_numer = rest_numbers[idx]
         new_numer = cur_numer + cnt
+        RoundRobin.prev_resting_number[idx] = cur_numer
         if new_numer < 0:
             rest_numbers[idx] = 0
         else:
@@ -81,49 +86,64 @@ class RoundRobin(object):
     Increases cur_idx in a circular manner.
     Returns the chosen instance index.
     '''
+
     @staticmethod
-    def get_instance_index() -> int:
+    def get_instance_index() -> tuple[int, str]:
         visited: int = 0
-        chosen_idx = -1
+        chosen_idx = RoundRobin.invalid_cur_idx
+        decision_reason = ""
 
         while visited < RoundRobin.backend_srv_number:
             if RoundRobin.resting_number[RoundRobin.cur_idx] == 0:
                 chosen_idx = RoundRobin.cur_idx
+                decision_reason = f"service {chosen_idx} is chosen because its resting number is zero"
                 break
             visited += 1
             RoundRobin.circle_inc_cur_idx()
 
-        if chosen_idx == -1:
-            a = all(resp_time < Env.app_api_timeout_ms for resp_time in RoundRobin.resp_time_stat)
-            if all(resp_time < Env.app_api_timeout_ms for resp_time in RoundRobin.resp_time_stat):
-                chosen_idx = RoundRobin.resp_time_stat.index(min(RoundRobin.resp_time_stat))
+        if chosen_idx == RoundRobin.invalid_cur_idx:
+            if all(resp_time < Env.app_api_timeout_ms for resp_time in RoundRobin.resp_time_ms_stat):
+                min_resp_time = min(RoundRobin.resp_time_ms_stat)
+                chosen_idx = RoundRobin.resp_time_ms_stat.index(min_resp_time)
                 RoundRobin.update_cur_idx(chosen_idx)
+                decision_reason = f"service {chosen_idx} is chosen because its previous response time is the smallest, {min_resp_time}"
+            else:
+                decision_reason = (f"no service is chosen (idx = -1) because all of their historical "
+                                   f"response time are greater than timeout threshold (ms) {Env.app_api_timeout_ms}")
 
         RoundRobin.update_all_resting_number(RoundRobin.resting_number, -1)
         RoundRobin.circle_inc_cur_idx()
-        return chosen_idx
+        return chosen_idx, decision_reason
 
     @staticmethod
-    def update_response_time(cur_idx: int, resp_time_ms: int) -> None:
-        RoundRobin.resp_time_stat[cur_idx] = resp_time_ms
+    def update_response_time(cur_idx: int, resp_time_ms: int) -> str:
+        RoundRobin.prev_resp_time_ms_stat = [t for t in RoundRobin.resp_time_ms_stat]
+        RoundRobin.resp_time_ms_stat[cur_idx] = resp_time_ms
+        reason = ""
 
         if RoundRobin.env.slow_down_threshold_ms <= resp_time_ms < RoundRobin.env.app_api_timeout_ms:
             RoundRobin.update_resting_number(RoundRobin.resting_number, cur_idx, RoundRobin.env.slow_down_rest)
+            reason = f"{cur_idx} is slow down now, so we add the resting number {RoundRobin.env.slow_down_rest} for it."
         elif resp_time_ms >= RoundRobin.env.app_api_timeout_ms:
             RoundRobin.update_resting_number(RoundRobin.resting_number, cur_idx, RoundRobin.env.timeout_rest)
+            reason = f"{cur_idx} is timeout now, so we add the resting number {RoundRobin.env.timeout_rest} for it."
+
+        return " | " + reason if reason != "" else ""
 
 
 class Api(object):
     @staticmethod
-    def get_success_response(response: Response, other: dict) -> dict:
+    def get_response(status: str, response: Response = None, reason: str = "", cur_idx: int = -1) -> dict:
         return {
-            "status": "success",
-            "data_from_upstream": response.json(),
-            "upstream_index": RoundRobin.cur_idx,
-            "upstream_service": Env.app_instances[RoundRobin.cur_idx],
-            "response_time_ms_statistics": RoundRobin.resp_time_stat,
-            "rest_number": RoundRobin.resting_number,
-            "other": other
+            "1_status": status,
+            "2_data_from_upstream": response.json() if response else "",
+            "3_upstream_index": cur_idx,
+            "4_upstream_service": Env.app_instances[cur_idx] if cur_idx >= 0 else "no service is chosen",
+            "5_response_time_ms_statistics": RoundRobin.resp_time_ms_stat,
+            "6_prev_response_time_ms_statistics": RoundRobin.prev_resp_time_ms_stat,
+            "7_rest_number": RoundRobin.resting_number,
+            "8_prev_rest_number": RoundRobin.prev_resting_number,
+            "9_reason": reason,
         }
 
 

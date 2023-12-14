@@ -10,17 +10,17 @@ services:
   application_api_0:
     image: application_api:latest
     ports:
-      - "10001:5000"
+      - "10000:5000"
 
   application_api_1:
     image: application_api:latest
     ports:
-      - "10002:5000"
+      - "10001:5000"
 
   application_api_2:
     image: application_api:latest
     ports:
-      - "10003:5000"
+      - "10002:5000"
 
 
   routing_api:

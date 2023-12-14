@@ -21,53 +21,53 @@ app_instances: list[str] = Env.app_instances
 rr.init(len(app_instances))
 
 
-def get_resp(response: Response, other: dict = {}):
+def get_resp(response: Response, reason: str, cur_idx: int):
     if response.status_code == 200:
         # Update the instance index for the next request (round-robin)
-        response_data = Api.get_success_response(response, other)
+        response_data = Api.get_response("success", response, reason, cur_idx)
         return jsonify(response_data), 200  # Respond with the instance response
     else:
-        return jsonify({
-            "error": "Upstream API failed",
-            "upstream_index": rr.cur_idx
-        }), 500  # Respond with an error if upstream call failed
+        response_data = Api.get_response("error", response, reason, cur_idx)
+        return jsonify(response_data), 500  # Respond with an error if upstream call failed
 
 
 def get_rr_idx_instances():
     # Get the current instance address based on round-robin index
-    current_instance_index = rr.get_instance_index()
+    current_instance_index, reason = rr.get_instance_index()
     if current_instance_index == -1:
         raise NoHealthyUpstream("No healthy upstream")
     current_instance: str = app_instances[current_instance_index]
-    return current_instance, current_instance_index
+    return current_instance, current_instance_index, reason
 
 
 @app.route('/', methods=['POST'])
 def round_robin(inject_post=None):
     post = inject_post if inject_post else requests.post
     # Send the received JSON payload to the selected instance
+
+    current_instance_index = -1
+    current_instance = 0
     try:
-        current_instance, current_instance_index = get_rr_idx_instances()
+        current_instance, current_instance_index, reason = get_rr_idx_instances()
         data = request.get_json()  # Get the JSON data from the POST request
         start: datetime = datetime.now()
         response: Response = post(current_instance, json=data, timeout=Env.app_api_timeout_seconds)
         resp_time = get_response_time_ms(start)
-        rr.update_response_time(current_instance_index, resp_time)
+        resting_reason = rr.update_response_time(current_instance_index, resp_time)
 
-        return get_resp(response)
+        return get_resp(response, reason + resting_reason, current_instance_index)
 
     except requests.exceptions.Timeout:
         rr.update_response_time(current_instance_index, Env.app_api_timeout_ms)
-        return jsonify({
-            "error": f"timeout when sending request to {current_instance}",
-            "current_instance_index": current_instance_index,
-            "response_time_ms_statistics": rr.resp_time_stat,
-            "app_api_timeout_ms": Env.app_api_timeout_ms
-        }), 500  # Respond with an error for any exception
+        reason = f"timeout when sending request to {current_instance} | so we add resting number {Env.timeout_rest} onto {current_instance_index}"
+        response_data = Api.get_response("failed", None, reason, current_instance_index)
+        return jsonify(response_data), 500  # Respond with an error for any exception
 
     except requests.RequestException as e:
         rr.update_response_time(current_instance_index, Env.app_api_timeout_ms)
-        return jsonify({"error": f"Request Exception: {e}"}), 500  # Respond with an error for any exception
+        reason = f"{e}"
+        response_data = Api.get_response("failed", None, reason, current_instance_index)
+        return jsonify(response_data), 500  # Respond with an error for any exception
 
 
 if __name__ == '__main__':

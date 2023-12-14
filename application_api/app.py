@@ -20,7 +20,7 @@ global current_status
 def echo_request():
     data = request.get_json()  # Get the JSON data from the POST request
     if current_status == Status.Slow:
-        sleep(random.randint(1, 5))
+        sleep(random.randint(1, 2))
     elif current_status == Status.Down:
         sleep(1000000)
     return jsonify(data), 200  # Respond with the received JSON payload

@@ -93,6 +93,7 @@ slowly?
    - If there is an application slow down, in my code, I'll give this application a resting number (defined as SLOW_DOWN_REST_NUMBER in config.env)
    - Before the resting number is decreased to **zero**, this service should be skipped.
 3. How would I test this application?
+   - Assumption: we have 3 instances 0, 1, 2
    - Unit test: routing_api/tests/test_routing_api.py
      - Positive test case: test_positive_no_delay_and_no_timeout
      - Negative test cases:
@@ -101,4 +102,10 @@ slowly?
        - test_negative_one_timeout_and_one_delay (slow down and go down)
        - test_all_timeout (all go down)
    - Manually test: By [POSTMAN collection], and please refer to the mail
+     - Positive test case: test_positive_no_delay_and_no_timeout
+     - Negative test cases:
+       - test_negative_one_delay (slow down)
+       - test_negative_one_timeout (go down)
+       - test_negative_one_timeout_and_one_delay (slow down and go down)
+       - test_all_timeout (all go down)
 
