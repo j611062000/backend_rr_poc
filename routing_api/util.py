@@ -154,7 +154,8 @@ class Api(object):
                 "previous": lst_to_str(RoundRobin.prev_resting_number),
             },
             "6_explanation": reason,
-            "7_metadata": {
+            "7_rules": "Rules: 1. rest number == 0 | 2.smallest resp time if resp time < timeout",
+            "8_metadata": {
                 "slow_down_threshold_ms": RoundRobin.env.slow_down_threshold_ms,
                 "timeout_threshold_ms": RoundRobin.env.app_api_timeout_ms
             }
